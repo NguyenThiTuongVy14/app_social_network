@@ -168,19 +168,45 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.black
+          : Colors.white, // Nền trắng/đen theo theme
       appBar: AppBar(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.black
+            : Colors.white,
+        foregroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black,
+        elevation: 1,
+        shadowColor: Colors.grey,
         title: Row(
           children: [
             CircleAvatar(
+              backgroundColor: Colors.grey,
               backgroundImage: widget.profilePic.isNotEmpty
                   ? NetworkImage(widget.profilePic)
                   : null,
               child: widget.profilePic.isEmpty
-                  ? Text(widget.userName[0].toUpperCase())
+                  ? Text(
+                widget.userName[0].toUpperCase(),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+              )
                   : null,
             ),
             const SizedBox(width: 10),
-            Text(widget.userName),
+            Text(
+              widget.userName,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+              ),
+            ),
           ],
         ),
       ),
@@ -188,7 +214,11 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+              child: CircularProgressIndicator(
+                color: Colors.grey, // Loading xám
+              ),
+            )
                 : ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(10),
@@ -198,31 +228,47 @@ class _ChatScreenState extends State<ChatScreen> {
                 final isMe = message['senderId'] != widget.userId;
 
                 return Row(
-                  mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  mainAxisAlignment: isMe
+                      ? MainAxisAlignment.end
+                      : MainAxisAlignment.start,
                   children: [
                     if (!isMe)
                       CircleAvatar(
+                        backgroundColor: Colors.grey, // Avatar xám
                         backgroundImage: NetworkImage(widget.profilePic),
                       ),
                     const SizedBox(width: 5),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.symmetric(vertical: 5),
-                      decoration: BoxDecoration(
-                        color: isMe ? Colors.purple.shade100 : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.symmetric(vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? (isMe ? Colors.grey[800] : Colors.grey[600])
+                              : (isMe ? Colors.grey[300] : Colors.grey[500]),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          message['text'],
+                          softWrap: true,
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                        ),
                       ),
-                      child: Text(message['text'],),
                     ),
+                    const SizedBox(width: 5,),
                     if (isMe)
                       CircleAvatar(
+                        backgroundColor: Colors.grey,
                         backgroundImage: myProfilePic.isNotEmpty
                             ? NetworkImage(myProfilePic)
                             : null,
                       ),
                   ],
                 );
-
               },
             ),
           ),
@@ -233,16 +279,32 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[900]
+                          : Colors.grey[200], // Nền TextField xám
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
                       ),
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send),
+                  icon: Icon(
+                    Icons.send,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
                   onPressed: sendMessage,
                 ),
               ],

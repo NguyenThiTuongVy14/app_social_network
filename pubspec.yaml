@@ -46,6 +46,7 @@ dependencies:
   socket_io_client: ^2.0.3+1
   dio: ^5.4.0
   intl: ^0.18.0
+  image_picker: ^1.0.4
   flutter_custom_clippers: ^2.1.0
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

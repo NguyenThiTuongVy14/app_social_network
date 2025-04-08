@@ -177,6 +177,20 @@ class _FriendScreenState extends State<FriendScreen> with SingleTickerProviderSt
     final String profilePic = user['profilePic'] ?? '';
 
     return ListTile(
+      onTap: () {
+        if (isFriend) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(
+                userId: user['_id'],
+                userName: fullName,
+                profilePic: profilePic,
+              ),
+            ),
+          );
+        }
+      }, // <-- thêm dòng này: kết thúc onTap
       leading: CircleAvatar(
         backgroundImage: profilePic.isNotEmpty
             ? NetworkImage(profilePic)

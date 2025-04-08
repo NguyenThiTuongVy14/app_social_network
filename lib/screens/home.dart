@@ -76,13 +76,35 @@ class _ChatListPageState extends State<ChatListPage> {
       print('Error fetching chats: $e');
     }
   }
-
+  Widget _buildEmptyChat() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            "Chưa có tin nhắn",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            "Hãy bắt đầu cuộc trò chuyện với bạn bè!",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
+    if (chatList.isEmpty) {
+      return _buildEmptyChat();
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(8.0),
       itemCount: chatList.length,
