@@ -166,7 +166,7 @@ class FriendModel {
       } else {
         return {
           'success': false,
-          'message': 'User not found',
+          // 'message': 'User not found',
           'data': null,
         };
       }
