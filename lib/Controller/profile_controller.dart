@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:social_network/screens/login_screen.dart';
 
 import '../models/profile_model.dart';
 
@@ -63,7 +64,12 @@ class ProfileController extends ChangeNotifier {
     final result = await profileModel.logout();
     if (result['success']) {
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        print('Context not mounted, cannot navigate to LoginScreen');
       }
     } else {
       _errorMessage = 'Failed to logout';
