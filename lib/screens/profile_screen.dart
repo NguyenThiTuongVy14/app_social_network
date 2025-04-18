@@ -1,120 +1,50 @@
 import 'dart:io';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-
-import 'package:social_network/screens/login_screen.dart';
 import 'package:social_network/theme/theme_provider.dart';
-import 'package:social_network/config/config.dart';
 
-class ProfileScreen extends StatefulWidget {
+import '../Controller/profile_controller.dart';
+import '../models/profile_model.dart';
+
+
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ProfileController(profileModel: ProfileModel()),
+      child: const _ProfileScreenView(),
+    );
+  }
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  String name = "";
-  String email = "";
-  String profilePic = "";
-  bool isLoading = true;
+class _ProfileScreenView extends StatefulWidget {
+  const _ProfileScreenView();
 
-  File? _image;
-  String? _base64Image;
-  bool _uploading = false; // ✅ Loading trạng thái khi upload ảnh
+  @override
+  _ProfileScreenViewState createState() => _ProfileScreenViewState();
+}
 
+class _ProfileScreenViewState extends State<_ProfileScreenView> {
   @override
   void initState() {
     super.initState();
-    fetchProfile();
-  }
-
-  Future<void> fetchProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      name = prefs.getString('name') ?? 'Unknown';
-      email = prefs.getString('email') ?? 'No email';
-      profilePic = prefs.getString('pic') ?? '';
-      isLoading = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProfileController>(context, listen: false).fetchProfile();
     });
-  }
-
-  Future<void> pickImageAndUpload() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile == null) return;
-
-    setState(() => _uploading = true); // ✅ Bắt đầu loading
-
-    try {
-      final bytes = await pickedFile.readAsBytes();
-      _base64Image = 'data:image/jpeg;base64,' + base64Encode(bytes);
-
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token') ?? '';
-      if (token.isEmpty) return;
-
-      final response = await http.put(
-        Uri.parse('${Config.baseUrl}/api/auth/update-profile'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'profilePic': _base64Image}),
-      );
-
-      print("STATUS: ${response.statusCode}");
-      print("BODY: ${response.body}");
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          profilePic = data['profilePic'] ?? profilePic;
-          _image = File(pickedFile.path);
-        });
-        await prefs.setString('pic', profilePic);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Cập nhật ảnh đại diện thành công")),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Cập nhật thất bại")),
-        );
-      }
-    } catch (e) {
-      print("Upload error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Có lỗi xảy ra khi cập nhật")),
-      );
-    } finally {
-      setState(() => _uploading = false); // ✅ Kết thúc loading
-    }
-  }
-
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = Provider.of<ProfileController>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Profile")),
       body: Stack(
         children: [
-          isLoading
+          controller.isLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -125,25 +55,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     CircleAvatar(
                       radius: 60,
-                      backgroundImage: _image != null
-                          ? FileImage(_image!)
-                          : (profilePic.isNotEmpty
-                          ? NetworkImage(profilePic)
-                          : null) as ImageProvider<Object>?,
-                      child: profilePic.isEmpty && _image == null
-                          ? const Icon(Icons.person, size: 60)
-                          : null,
+                      backgroundColor: Colors.grey,
+                      child: ClipOval(
+                        child: controller.image != null
+                            ? Image.file(
+                          controller.image!,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        )
+                            : controller.profilePic.isNotEmpty
+                            ? Image.network(
+                          controller.profilePic,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                        )
+                            : const Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: pickImageAndUpload,
+                      onPressed: controller.pickImageAndUpload,
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  controller.name,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 5),
-                Text(email, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                Text(
+                  controller.email,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -158,15 +113,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
-                  onPressed: logout,
+                  onPressed: () => controller.logout(context),
                   icon: const Icon(Icons.logout),
                   label: const Text("Logout"),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 ),
+                if (controller.errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      controller.errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
               ],
             ),
           ),
-          if (_uploading)
+          if (controller.isUploading)
             Container(
               color: Colors.black.withOpacity(0.5),
               child: const Center(child: CircularProgressIndicator()),

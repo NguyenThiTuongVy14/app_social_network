@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import '../config/config.dart';
+import '../Controller/register_controller.dart';
+import '../models/auth_model.dart';
 import '../theme/theme_provider.dart';
 import 'login_screen.dart';
 
@@ -10,69 +9,22 @@ class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  _RegisterScreenState createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _fullNameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _isLoading = false;
+  late RegisterController controller;
 
-  Future<void> _register() async {
-    final fullName = _fullNameController.text;
-    final email = _emailController.text;
-    final password = _passwordController.text;
+  @override
+  void initState() {
+    super.initState();
+    controller = RegisterController(authModel: AuthModel());
+  }
 
-    if (fullName.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final url = Uri.parse('${Config.baseUrl}/api/auth/signup');
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'fullName': fullName,
-          'email': email,
-          'password': password,
-        }),
-      );
-
-      final data = json.decode(response.body);
-
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Register successful! Please login.")),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['msg'] ?? 'Registration failed')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Something went wrong. Please try again")),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -99,14 +51,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               Icon(Icons.person_add_alt_1, size: 60, color: Colors.purple),
               const SizedBox(height: 16),
-              const Text("Create Account",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                "Create Account",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
-              const Text("Sign up to get started",
-                  style: TextStyle(fontSize: 16, color: Colors.grey)),
+              const Text(
+                "Sign up to get started",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
               const SizedBox(height: 24),
               TextField(
-                controller: _fullNameController,
+                controller: controller.fullNameController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.person_outline),
                   hintText: "Full Name",
@@ -117,7 +73,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               TextField(
-                controller: _emailController,
+                controller: controller.emailController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.email_outlined),
                   hintText: "you@example.com",
@@ -128,17 +84,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
+                controller: controller.passwordController,
+                obscureText: controller.obscurePassword,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
+                    icon: Icon(
+                      controller.obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
                     onPressed: () {
                       setState(() {
-                        _obscurePassword = !_obscurePassword;
+                        controller.togglePasswordVisibility();
                       });
                     },
                   ),
@@ -153,14 +111,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _register,
+                  onPressed: controller.isLoading
+                      ? null
+                      : () => controller.register(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.shade200,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  child: _isLoading
+                  child: controller.isLoading
                       ? const CircularProgressIndicator()
                       : const Text(
                     "Sign up",

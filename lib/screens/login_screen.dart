@@ -1,11 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:social_network/screens/MainScreen.dart';
-import 'package:social_network/screens/home.dart';
-import '../config/config.dart';
+import '../Controller/login_controller.dart';
+import '../models/auth_model.dart';
 import '../theme/theme_provider.dart';
 import 'register_screen.dart';
 
@@ -17,83 +13,19 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  late LoginController controller;
 
-
-  bool _isLoading = false;
-
-  // Login function
-  Future<void> _login() async {
-    final email = _emailController.text;
-    final password = _passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter email and password")),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final url = Uri.parse('${Config.baseUrl}/api/auth/login');
-    try {
-      final response = await http.post(
-        url,
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        final token = responseData['token'];
-        final id = responseData['_id'];
-        final pic = responseData['profilePic'];
-        final name=responseData['fullName'];
-        final email=responseData['email'];
-        // Lưu token vào SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
-        await prefs.setString('id', id);
-        await prefs.setString('pic', pic);
-        await prefs.setString('name', name);
-        await prefs.setString('email', email);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login successful")),
-        );
-
-        // Chuyển đến HomeScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
-      } else {
-        final responseData = json.decode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(responseData['message'] ?? "Login failed")),
-        );
-      }
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login failed, please try again")),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    controller = LoginController(authModel: AuthModel());
   }
 
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
               TextField(
-                controller: _emailController,
+                controller: controller.emailController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.email_outlined),
                   hintText: "you@example.com",
@@ -140,18 +72,20 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
+                controller: controller.passwordController,
+                obscureText: controller.obscurePassword,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      controller.obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.grey,
                     ),
                     onPressed: () {
                       setState(() {
-                        _obscurePassword = !_obscurePassword;
+                        controller.togglePasswordVisibility();
                       });
                     },
                   ),
@@ -166,14 +100,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
+                  onPressed: controller.isLoading
+                      ? null
+                      : () => controller.login(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.shade200,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  child: _isLoading
+                  child: controller.isLoading
                       ? const CircularProgressIndicator()
                       : const Text(
                     "Sign in",
